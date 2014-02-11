@@ -101,34 +101,14 @@ public class EverestController extends DefaultController {
             case POST:
             case PATCH:
                 action = Action.UPDATE;
+                break;
             case DELETE:
                 action = Action.DELETE;
+                break;
             default:
                 throw new IllegalArgumentException("The HTTP Method " + request().method() + " is not supported by " +
                         "Everest");
         }
         return action;
     }
-
-//    public static Map<String, ?> flat(Map<String, String[]> params) {
-//        if (params == null) {
-//            return Collections.emptyMap();
-//        }
-//        LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
-//        for (Map.Entry<String, String[]> entry : params.entrySet()) {
-//            if (entry.getValue() == null) {
-//                // No value.
-//                map.put(entry.getKey(), null);
-//            } else if (entry.getValue().length == 0) {
-//                map.put(entry.getKey(), Boolean.TRUE.toString());
-//            } else if (entry.getValue().length == 1) {
-//                // Scalar parameter.
-//                map.put(entry.getKey(), entry.getValue()[0]);
-//            } else if (entry.getValue().length > 1) {
-//                // Translate to list
-//                map.put(entry.getKey(), Arrays.asList(entry.getValue()));
-//            }
-//        }
-//        return map;
-//    }
 }
