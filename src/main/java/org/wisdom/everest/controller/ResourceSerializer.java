@@ -40,8 +40,8 @@ public class ResourceSerializer extends JsonSerializer<Resource> {
 
         jsonGenerator.writeFieldName("relations");
         jsonGenerator.writeStartObject();
-        for (Relation relation : resource.getRelations()) {
-            jsonGenerator.writeFieldName(relation.getName());
+        for (Object relation : resource.getRelations()) {
+            jsonGenerator.writeFieldName(((Relation) relation).getName());
             serializerProvider.defaultSerializeValue(relation, jsonGenerator);
         }
         jsonGenerator.writeEndObject();

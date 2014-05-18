@@ -2,20 +2,20 @@ package org.wisdom.everest.controller;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.felix.ipojo.annotations.Requires;
-import org.ow2.chameleon.everest.core.Everest;
 import org.ow2.chameleon.everest.impl.DefaultRequest;
 import org.ow2.chameleon.everest.services.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wisdom.api.DefaultController;
 import org.wisdom.api.annotations.Controller;
-import org.wisdom.api.configuration.ApplicationConfiguration;
 import org.wisdom.api.content.Json;
+import org.wisdom.api.content.ParameterConverters;
 import org.wisdom.api.http.HttpMethod;
 import org.wisdom.api.http.Result;
 import org.wisdom.api.router.Route;
 import org.wisdom.api.router.RouteBuilder;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +31,9 @@ public class EverestController extends DefaultController {
 
     @Requires
     private Json json;
+
+    @Requires
+    private ParameterConverters converters;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EverestController.class);
 
@@ -48,11 +51,11 @@ public class EverestController extends DefaultController {
 
     public Result serve() {
         try {
-            Path path = Path.from(request().uri());
+            Path path = Path.from(context().request().path());
             // Remove the beginning Everest
             path = path.subtract(Path.from(EVEREST_URL));
 
-            Resource resource = everest.process(translate());
+            Resource resource = everest.process(translate(path));
 
             LOGGER.info("=> " + json.toJson(resource));
 
@@ -77,15 +80,43 @@ public class EverestController extends DefaultController {
     }
 
 
-    public DefaultRequest translate() {
-        LOGGER.info("Everest request: " + request().method() + " " + request().uri());
-
-        Path path = Path.from(request().uri());
-        // Remove the beginning Everest
-        path = path.subtract(Path.from(EVEREST_URL));
+    public DefaultRequest translate(Path path) {
+        LOGGER.info("Everest request: " + request().method() + " " + request().path());
         Action action = getAction();
+
         Map<String, List<String>> params = context().parameters();
-        return new DefaultRequest(action, path, params); // TODO Detect JSON.
+        if (params == null || params.isEmpty()) {
+            // Fall-back for forms
+            params = context().attributes();
+        }
+
+        Map<String, Object> everestParameters = new HashMap<>();
+        for (Map.Entry<String, List<String>> entry : params.entrySet()) {
+            if (entry.getKey().startsWith("$")) {
+                // It's a type, ignore it.
+                continue;
+            }
+
+            String name = entry.getKey();
+            Class type = String.class;
+            // Do we have a type ?
+            if (params.containsKey("$" + name)) {
+                String classname = params.get("$" + name).get(0);
+                type = load(classname);
+            }
+            Object value = converters.convertValues(entry.getValue(), type, null, null);
+            everestParameters.put(name, value);
+        }
+
+        return new DefaultRequest(action, path, everestParameters);
+    }
+
+    private Class load(String classname) {
+        try {
+            return this.getClass().getClassLoader().loadClass(classname);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException("Cannot load " + classname, e);
+        }
     }
 
     private Action getAction() {

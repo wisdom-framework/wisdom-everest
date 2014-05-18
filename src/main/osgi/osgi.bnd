@@ -1,0 +1,3 @@
+Private-Package: org.wisdom.everest.controller
+Import-Package: *
+DynamicImport-Package: *
